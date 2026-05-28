@@ -1,0 +1,16 @@
+--ESP
+print("ESP xong rồi")
+pcall(function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/wixen167/ba-tanh-wixen/refs/heads/main/%C3%A9t%20bi"))()
+end)
+
+-- Nghỉ 2 giây để Aimbot load xong UI hoặc cấu hình
+task.wait(2) 
+
+--Aim
+print("Đang khởi động Aim")
+pcall(function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/wixen167/ba-tanh-wixen/refs/heads/main/am%20p%C3%A1t"))()
+end)
+
+print("Đã kích hoạt xong cả 2 theo thứ tự!")
