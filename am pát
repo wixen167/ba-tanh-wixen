@@ -23,8 +23,8 @@ _rayparams.FilterType = Enum.RaycastFilterType.Exclude
 _rayparams.IgnoreWater = true
 
 --// DANH SÁCH BỘ PHẬN (ƯU TIÊN CÁC ĐIỂM CHÍNH)
-local MainParts = {"HumanoidRootPart", "Head"}
-local ExtraParts = {"UpperTorso", "LowerTorso", "RightUpperArm", "LeftUpperArm", "RightLowerArm", "LeftLowerArm", "RightUpperLeg", "LeftUpperLeg", "RightLowerLeg", "LeftLowerLeg"}
+local MainParts = {"HumanoidRootPart", "Head", "UpperTorso", "LowerTorso", "RightUpperArm", "LeftUpperArm", "RightLowerArm", "LeftLowerArm", "RightUpperLeg", "LeftUpperLeg", "RightLowerLeg", "LeftLowerLeg"}
+local ExtraParts = { }
 
 --// DỌN GUI CŨ
 if game.CoreGui:FindFirstChild("Aimbot_FriendMenu") then game.CoreGui.Aimbot_FriendMenu:Destroy() end
