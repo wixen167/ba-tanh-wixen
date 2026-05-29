@@ -1,5 +1,7 @@
 --// CONFIG
-local toggleKey = Enum.KeyCode.G -- CHỈNH PHÍM BẬT/TẮT Ở ĐÂY (Mặc định là phím Q)
+local toggleKey = Enum.KeyCode.G -- PHÍM BẬT/TẮT AIMBOT (Ấn G để ON/OFF nhanh)
+local wallCheck = true           -- Cấu hình mặc định: Bật Check Tường
+local maxDistance = 1000         -- Giới hạn khoảng cách Aim (tính bằng stud)
 
 local teamCheck = false
 local fov = 150 
@@ -22,34 +24,53 @@ local _rayparams = RaycastParams.new()
 _rayparams.FilterType = Enum.RaycastFilterType.Exclude
 _rayparams.IgnoreWater = true
 
---// DANH SÁCH BỘ PHẬN (ƯU TIÊN CÁC ĐIỂM CHÍNH)
-local MainParts = {"HumanoidRootPart", "Head", "UpperTorso", "LowerTorso", "RightUpperArm", "LeftUpperArm", "RightLowerArm", "LeftLowerArm", "RightUpperLeg", "LeftUpperLeg", "RightLowerLeg", "LeftLowerLeg"}
-local ExtraParts = { }
+-- KHẮC PHỤC TRIỆT ĐỂ SỤT FPS: Cập nhật danh sách bỏ qua ngầm mỗi 1 giây thay vì chạy liên tục từng khung hình
+task.spawn(function()
+    while true do
+        local ignoreList = {Camera}
+        local allPlayers = Players:GetPlayers()
+        for i = 1, #allPlayers do
+            local char = allPlayers[i].Character
+            if char then table.insert(ignoreList, char) end
+        end
+        _rayparams.FilterDescendantsInstances = ignoreList
+        task.wait(1)
+    end
+end)
 
 --// DỌN GUI CŨ
 if game.CoreGui:FindFirstChild("Aimbot_FriendMenu") then game.CoreGui.Aimbot_FriendMenu:Destroy() end
 
 --// TẠO MENU
 local Gui = Instance.new("ScreenGui", game.CoreGui); Gui.Name = "Aimbot_FriendMenu"
-local Main = Instance.new("Frame", Gui); Main.Size = UDim2.new(0, 180, 0, 280); Main.Position = UDim2.new(0, 20, 0.4, 0); Main.BackgroundColor3 = Color3.fromRGB(36, 36, 37); Main.BorderSizePixel = 0; Main.Active = true; Main.Draggable = true
+local Main = Instance.new("Frame", Gui); Main.Size = UDim2.new(0, 180, 0, 310); Main.Position = UDim2.new(0, 20, 0.4, 0); Main.BackgroundColor3 = Color3.fromRGB(36, 36, 37); Main.BorderSizePixel = 0; Main.Active = true; Main.Draggable = true
 local Header = Instance.new("Frame", Main); Header.Size = UDim2.new(1, 0, 0, 25); Header.BackgroundColor3 = Color3.fromRGB(46, 46, 47); Header.BorderSizePixel = 0
 local Title = Instance.new("TextLabel", Header); Title.Size = UDim2.new(1, 0, 1, 0); Title.Text = "  AIMBOT MANAGER"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 14; Title.TextXAlignment = Enum.TextXAlignment.Left; Title.BackgroundTransparency = 1
 
+-- Nút Bật/Tắt Aimbot
 local ToggleBtn = Instance.new("TextButton", Main); ToggleBtn.Size = UDim2.new(1, -10, 0, 25); ToggleBtn.Position = UDim2.new(0, 5, 0, 30); ToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 50); ToggleBtn.Text = "Aimbot: ON (" .. toggleKey.Name .. ")"; ToggleBtn.TextColor3 = Color3.new(1, 1, 1); ToggleBtn.Font = Enum.Font.SourceSansBold; ToggleBtn.TextSize = 14; ToggleBtn.BorderSizePixel = 0
 
--- Hàm dùng chung để cập nhật trạng thái Bật/Tắt
-local function toggleAimbot()
-    aimbotEnabled = not aimbotEnabled
+local function updateAimbotUI()
     ToggleBtn.Text = "Aimbot: " .. (aimbotEnabled and "ON (" .. toggleKey.Name .. ")" or "OFF (" .. toggleKey.Name .. ")")
     ToggleBtn.BackgroundColor3 = aimbotEnabled and Color3.fromRGB(50, 150, 50) or Color3.fromRGB(150, 50, 50)
 end
 
-ToggleBtn.MouseButton1Click:Connect(toggleAimbot)
+ToggleBtn.MouseButton1Click:Connect(function()
+    aimbotEnabled = not aimbotEnabled
+    updateAimbotUI()
+end)
 
-local Scroll = Instance.new("ScrollingFrame", Main); Scroll.Size = UDim2.new(1, -10, 1, -65); Scroll.Position = UDim2.new(0, 5, 0, 60); Scroll.BackgroundTransparency = 1; Scroll.BorderSizePixel = 0; Scroll.ScrollBarThickness = 2; Scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+-- Nút Bật/Tắt Wall Check
+local WallBtn = Instance.new("TextButton", Main); WallBtn.Size = UDim2.new(1, -10, 0, 25); WallBtn.Position = UDim2.new(0, 5, 0, 60); WallBtn.BackgroundColor3 = wallCheck and Color3.fromRGB(50, 150, 50) or Color3.fromRGB(150, 50, 50); WallBtn.Text = "Wall Check: " .. (wallCheck and "ON" or "OFF"); WallBtn.TextColor3 = Color3.new(1, 1, 1); WallBtn.Font = Enum.Font.SourceSansBold; WallBtn.TextSize = 14; WallBtn.BorderSizePixel = 0
+WallBtn.MouseButton1Click:Connect(function()
+    wallCheck = not wallCheck
+    WallBtn.Text = "Wall Check: " .. (wallCheck and "ON" or "OFF")
+    WallBtn.BackgroundColor3 = wallCheck and Color3.fromRGB(50, 150, 50) or Color3.fromRGB(150, 50, 50)
+end)
+
+local Scroll = Instance.new("ScrollingFrame", Main); Scroll.Size = UDim2.new(1, -10, 1, -95); Scroll.Position = UDim2.new(0, 5, 0, 90); Scroll.BackgroundTransparency = 1; Scroll.BorderSizePixel = 0; Scroll.ScrollBarThickness = 2; Scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
 local ListLayout = Instance.new("UIListLayout", Scroll); ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
---// HÀM CẬP NHẬT MENU
 local function UpdateFriendList()
     task.spawn(function()
         for _, child in pairs(Scroll:GetChildren()) do if child:IsA("Frame") or child:IsA("TextButton") then child:Destroy() end end
@@ -72,16 +93,16 @@ local function UpdateFriendList()
         end
     end)
 end
-UpdateFriendList(); 
+UpdateFriendList()
 
--- Bắt sự kiện nhấn phím
+-- LẮNG NGHE PHÍM BẤM
 UserInputService.InputBegan:Connect(function(input, gameProcessed) 
     if gameProcessed then return end
-    
     if input.KeyCode == Enum.KeyCode.RightControl then 
         Main.Visible = not Main.Visible 
-    elseif input.KeyCode == toggleKey then
-        toggleAimbot()
+    elseif input.KeyCode == toggleKey then -- ẤN NÚT G ĐỂ BẬT/TẮT CODES
+        aimbotEnabled = not aimbotEnabled
+        updateAimbotUI()
     end 
 end)
 
@@ -89,7 +110,7 @@ end)
 local FOVring = Drawing.new("Circle")
 FOVring.Visible = true; FOVring.Thickness = 1; FOVring.Radius = fov; FOVring.Transparency = 0.8; FOVring.Color = Color3.fromRGB(255, 128, 128)
 
---// HÀM KIỂM TRA VẬT CẢN (SIÊU NHẸ)
+--// HÀM KIỂM TRA VẬT CẢN (RAYCAST)
 local function isVisible(part)
     if not part then return false end
     local origin = Camera.CFrame.Position
@@ -97,11 +118,28 @@ local function isVisible(part)
     return result == nil 
 end
 
---// LOGIC QUÉT MỤC TIÊU LÚC ĐẦU
+--// LOGIC TÌM MỤC TIÊU BAN ĐẦU
 local function getClosestVisible()
     local target, bestPart, minPadding = nil, nil, fov
     local screenCenter = Camera.ViewportSize / 2
     local players = Players:GetPlayers()
+
+    local partsToScan
+    if wallCheck then
+        -- BẬT WALL CHECK: Quét tất cả các bộ phận
+        partsToScan = {
+            "Head", "HumanoidRootPart", "UpperTorso", "LowerTorso", "Torso",
+            "RightUpperArm", "LeftUpperArm", "RightLowerArm", "LeftLowerArm",
+            "RightUpperLeg", "LeftUpperLeg", "RightLowerLeg", "LeftLowerLeg"
+        }
+    else
+        -- TẮT WALL CHECK: Chỉ quét các phần thân chính
+        partsToScan = {
+            "Head", "HumanoidRootPart", "UpperTorso", "LowerTorso", "Torso",
+            "RightUpperArm", "LeftUpperArm", "RightLowerArm", "LeftLowerArm",
+            "RightUpperLeg", "LeftUpperLeg", "RightLowerLeg", "LeftLowerLeg"
+        }
+    end
 
     for i = 1, #players do
         local v = players[i]
@@ -110,27 +148,22 @@ local function getClosestVisible()
         if char and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 then
             if teamCheck and v.Team == LocalPlayer.Team then continue end
 
-            for _, pName in ipairs(MainParts) do
+            -- Kiểm tra khoảng cách 3D cơ bản trước khi quét chi tiết
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                local dist3D = (hrp.Position - Camera.CFrame.Position).Magnitude
+                if dist3D > maxDistance then continue end
+            end
+
+            for _, pName in ipairs(partsToScan) do
                 local part = char:FindFirstChild(pName)
                 if part then
                     local pos, onScreen = Camera:WorldToViewportPoint(part.Position)
                     if onScreen then
                         local dist = (Vector2.new(pos.X, pos.Y) - screenCenter).Magnitude
-                        if dist < minPadding and isVisible(part) then
-                            minPadding, target, bestPart = dist, v, pName
-                        end
-                    end
-                end
-            end
-            
-            if not target then
-                for _, pName in ipairs(ExtraParts) do
-                    local part = char:FindFirstChild(pName)
-                    if part then
-                        local pos, onScreen = Camera:WorldToViewportPoint(part.Position)
-                        if onScreen then
-                            local dist = (Vector2.new(pos.X, pos.Y) - screenCenter).Magnitude
-                            if dist < minPadding and isVisible(part) then
+                        if dist < minPadding then
+                            -- Nếu bật Wall Check thì chỉ khóa khi nhìn thấy địch ngoài đời
+                            if not wallCheck or isVisible(part) then
                                 minPadding, target, bestPart = dist, v, pName
                             end
                         end
@@ -142,52 +175,45 @@ local function getClosestVisible()
     return target, bestPart
 end
 
---// RENDER LOOP (KHÓA CHẾT DÙ MỤC TIÊU BAY KHỎI VÒNG FOV)
+--// VÒNG LẶP KHÓA TÂM CHẶT CHẼ
 local currentTarget, currentPart
 RunService.RenderStepped:Connect(function()
-    if not aimbotEnabled then FOVring.Visible = false; return end
+    if not aimbotEnabled then FOVring.Visible = false; currentTarget = nil; return end
     FOVring.Visible = true; FOVring.Position = Camera.ViewportSize / 2
     
     if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
-        
-        -- CẬP NHẬT RAYCAST ĐÚNG 1 LẦN MỖI FRAME (KHÔNG LAG)
-        local ignoreList = {Camera}
-        local allPlayers = Players:GetPlayers()
-        for i = 1, #allPlayers do
-            local char = allPlayers[i].Character
-            if char then table.insert(ignoreList, char) end
-        end
-        _rayparams.FilterDescendantsInstances = ignoreList
 
-        -- KIỂM TRA MỤC TIÊU CŨ: Bỏ điều kiện FOV, địch bay đâu tâm dí theo đó
+        -- KHÓA CHẶT ĐỊCH CŨ: Chỉ nhả khi địch chết hoặc mất bộ phận, dính cứng ngắc xuyên tường
         if currentTarget and currentTarget.Character and currentTarget.Character:FindFirstChild("Humanoid") and currentTarget.Character.Humanoid.Health > 0 then
             local p = currentTarget.Character:FindFirstChild(currentPart)
-            if p then
-                -- Chỉ nhả aim khi bị TƯỜNG chắn (không thể bắn xuyên)
-                if not isVisible(p) then
-                    currentTarget = nil
-                end
-            else
-                currentTarget = nil
+            if not p then
+                currentTarget = nil 
             end
         else
-            currentTarget = nil
+            currentTarget = nil 
         end
 
-        if not currentTarget then currentTarget, currentPart = getClosestVisible() end
+        -- KHÓA ĐỊCH MỚI (Nếu chưa có ai lọt vào tầm ngắm)
+        if not currentTarget then 
+            currentTarget, currentPart = getClosestVisible() 
+        end
 
+        -- DÍ TÂM LIÊN TỤC VÀO MỤC TIÊU ĐANG KHÓA
         if currentTarget and currentTarget.Character and currentPart then
-            local part = currentTarget.Character[currentPart]
-            local hrp = currentTarget.Character:FindFirstChild("HumanoidRootPart")
-            local velocity = (hrp and hrp.Velocity) or Vector3.zero
-            local targetPos = part.Position + (velocity * predictionFactor)
-            
-            Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, targetPos), smoothing)
-            FOVring.Color = Color3.fromRGB(0, 255, 0)
+            local part = currentTarget.Character:FindFirstChild(currentPart)
+            if part then
+                local hrp = currentTarget.Character:FindFirstChild("HumanoidRootPart")
+                local velocity = (hrp and hrp.Velocity) or Vector3.zero
+                local targetPos = part.Position + (velocity * predictionFactor)
+                
+                Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, targetPos), smoothing)
+                FOVring.Color = Color3.fromRGB(0, 255,  green)
+            end
         else
             FOVring.Color = Color3.fromRGB(255, 128, 128)
         end
     else
+        -- KHI THẢ CHUỘT PHẢI: Buông mục tiêu ngay lập tức
         currentTarget = nil
         FOVring.Color = Color3.fromRGB(255, 128, 128)
     end
