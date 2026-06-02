@@ -1,0 +1,220 @@
+--// CONFIG
+local toggleKey = Enum.KeyCode.G -- PHÍM BẬT/TẮT AIMBOT (Ấn G để ON/OFF nhanh)
+local wallCheck = true           -- Cấu hình mặc định: Bật Check Tường
+local maxDistance = 450         -- Giới hạn khoảng cách Aim (tính bằng stud)
+
+local teamCheck = false
+local fov = 150 
+local smoothing = 1 
+local predictionFactor = 0 
+local aimbotEnabled = true 
+local whitelisted = {} 
+local teamWhitelisted = {} 
+local collapsedTeams = {} 
+
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local Teams = game:GetService("Teams")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+--// TỐI ƯU RAYCAST (DÙNG CHUNG 1 PARAMS)
+local _rayparams = RaycastParams.new()
+_rayparams.FilterType = Enum.RaycastFilterType.Exclude
+_rayparams.IgnoreWater = true
+
+-- KHẮC PHỤC TRIỆT ĐỂ SỤT FPS: Cập nhật danh sách bỏ qua ngầm mỗi 1 giây thay vì chạy liên tục từng khung hình
+task.spawn(function()
+    while true do
+        local ignoreList = {Camera}
+        local allPlayers = Players:GetPlayers()
+        for i = 1, #allPlayers do
+            local char = allPlayers[i].Character
+            if char then table.insert(ignoreList, char) end
+        end
+        _rayparams.FilterDescendantsInstances = ignoreList
+        task.wait(1)
+    end
+end)
+
+--// DỌN GUI CŨ
+if game.CoreGui:FindFirstChild("Aimbot_FriendMenu") then game.CoreGui.Aimbot_FriendMenu:Destroy() end
+
+--// TẠO MENU
+local Gui = Instance.new("ScreenGui", game.CoreGui); Gui.Name = "Aimbot_FriendMenu"
+local Main = Instance.new("Frame", Gui); Main.Size = UDim2.new(0, 180, 0, 310); Main.Position = UDim2.new(0, 20, 0.4, 0); Main.BackgroundColor3 = Color3.fromRGB(36, 36, 37); Main.BorderSizePixel = 0; Main.Active = true; Main.Draggable = true
+local Header = Instance.new("Frame", Main); Header.Size = UDim2.new(1, 0, 0, 25); Header.BackgroundColor3 = Color3.fromRGB(46, 46, 47); Header.BorderSizePixel = 0
+local Title = Instance.new("TextLabel", Header); Title.Size = UDim2.new(1, 0, 1, 0); Title.Text = "  AIMBOT MANAGER"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 14; Title.TextXAlignment = Enum.TextXAlignment.Left; Title.BackgroundTransparency = 1
+
+-- Nút Bật/Tắt Aimbot
+local ToggleBtn = Instance.new("TextButton", Main); ToggleBtn.Size = UDim2.new(1, -10, 0, 25); ToggleBtn.Position = UDim2.new(0, 5, 0, 30); ToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 50); ToggleBtn.Text = "Aimbot: ON (" .. toggleKey.Name .. ")"; ToggleBtn.TextColor3 = Color3.new(1, 1, 1); ToggleBtn.Font = Enum.Font.SourceSansBold; ToggleBtn.TextSize = 14; ToggleBtn.BorderSizePixel = 0
+
+local function updateAimbotUI()
+    ToggleBtn.Text = "Aimbot: " .. (aimbotEnabled and "ON (" .. toggleKey.Name .. ")" or "OFF (" .. toggleKey.Name .. ")")
+    ToggleBtn.BackgroundColor3 = aimbotEnabled and Color3.fromRGB(50, 150, 50) or Color3.fromRGB(150, 50, 50)
+end
+
+ToggleBtn.MouseButton1Click:Connect(function()
+    aimbotEnabled = not aimbotEnabled
+    updateAimbotUI()
+end)
+
+-- Nút Bật/Tắt Wall Check
+local WallBtn = Instance.new("TextButton", Main); WallBtn.Size = UDim2.new(1, -10, 0, 25); WallBtn.Position = UDim2.new(0, 5, 0, 60); WallBtn.BackgroundColor3 = wallCheck and Color3.fromRGB(50, 150, 50) or Color3.fromRGB(150, 50, 50); WallBtn.Text = "Wall Check: " .. (wallCheck and "ON" or "OFF"); WallBtn.TextColor3 = Color3.new(1, 1, 1); WallBtn.Font = Enum.Font.SourceSansBold; WallBtn.TextSize = 14; WallBtn.BorderSizePixel = 0
+WallBtn.MouseButton1Click:Connect(function()
+    wallCheck = not wallCheck
+    WallBtn.Text = "Wall Check: " .. (wallCheck and "ON" or "OFF")
+    WallBtn.BackgroundColor3 = wallCheck and Color3.fromRGB(50, 150, 50) or Color3.fromRGB(150, 50, 50)
+end)
+
+local Scroll = Instance.new("ScrollingFrame", Main); Scroll.Size = UDim2.new(1, -10, 1, -95); Scroll.Position = UDim2.new(0, 5, 0, 90); Scroll.BackgroundTransparency = 1; Scroll.BorderSizePixel = 0; Scroll.ScrollBarThickness = 2; Scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+local ListLayout = Instance.new("UIListLayout", Scroll); ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+local function UpdateFriendList()
+    task.spawn(function()
+        for _, child in pairs(Scroll:GetChildren()) do if child:IsA("Frame") or child:IsA("TextButton") then child:Destroy() end end
+        local allTeams = Teams:GetTeams()
+        local function CreatePlayerBtn(p, parent, isNested)
+            local btn = Instance.new("TextButton", parent); btn.Size = UDim2.new(1, isNested and -20 or 0, 0, 25); if isNested then btn.Position = UDim2.new(0, 20, 0, 0) end; btn.BackgroundColor3 = whitelisted[p.Name] and Color3.fromRGB(50, 150, 50) or Color3.fromRGB(45, 45, 46); btn.Text = " " .. p.DisplayName; btn.TextColor3 = Color3.new(1, 1, 1); btn.Font = Enum.Font.SourceSans; btn.TextSize = 14; btn.TextXAlignment = Enum.TextXAlignment.Left; btn.BorderSizePixel = 0
+            btn.MouseButton1Click:Connect(function() whitelisted[p.Name] = not whitelisted[p.Name]; UpdateFriendList() end)
+        end
+        if #allTeams > 0 then
+            for _, team in pairs(allTeams) do
+                local tFrame = Instance.new("Frame", Scroll); tFrame.Size = UDim2.new(1, 0, 0, 25); tFrame.BackgroundTransparency = 1
+                local tBtn = Instance.new("TextButton", tFrame); tBtn.Size = UDim2.new(1, -25, 1, 0); tBtn.Position = UDim2.new(0, 25, 0, 0); tBtn.BackgroundColor3 = teamWhitelisted[team.Name] and Color3.fromRGB(50, 100, 150) or Color3.fromRGB(55, 55, 56); tBtn.Text = " " .. team.Name; tBtn.TextColor3 = team.TeamColor.Color; tBtn.Font = Enum.Font.SourceSansBold; tBtn.TextSize = 14; tBtn.TextXAlignment = Enum.TextXAlignment.Left; tBtn.BorderSizePixel = 0
+                local arrow = Instance.new("TextButton", tFrame); arrow.Size = UDim2.new(0, 25, 1, 0); arrow.BackgroundColor3 = Color3.fromRGB(40, 40, 41); arrow.Text = collapsedTeams[team.Name] and ">" or "v"; arrow.TextColor3 = Color3.new(1, 1, 1); arrow.BorderSizePixel = 0
+                tBtn.MouseButton1Click:Connect(function() teamWhitelisted[team.Name] = not teamWhitelisted[team.Name]; UpdateFriendList() end)
+                arrow.MouseButton1Click:Connect(function() collapsedTeams[team.Name] = not collapsedTeams[team.Name]; UpdateFriendList() end)
+                if not collapsedTeams[team.Name] then for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer and p.Team == team then CreatePlayerBtn(p, Scroll, true) end end end
+            end
+        else
+            for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer then CreatePlayerBtn(p, Scroll, false) end end
+        end
+    end)
+end
+UpdateFriendList()
+
+-- LẮNG NGHE PHÍM BẤM
+UserInputService.InputBegan:Connect(function(input, gameProcessed) 
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.RightControl then 
+        Main.Visible = not Main.Visible 
+    elseif input.KeyCode == toggleKey then -- ẤN NÚT G ĐỂ BẬT/TẮT CODES
+        aimbotEnabled = not aimbotEnabled
+        updateAimbotUI()
+    end 
+end)
+
+--// FOV RING
+local FOVring = Drawing.new("Circle")
+FOVring.Visible = true; FOVring.Thickness = 1; FOVring.Radius = fov; FOVring.Transparency = 0.8; FOVring.Color = Color3.fromRGB(255, 128, 128)
+
+--// HÀM KIỂM TRA VẬT CẢN (RAYCAST)
+local function isVisible(part)
+    if not part then return false end
+    local origin = Camera.CFrame.Position
+    local result = workspace:Raycast(origin, (part.Position - origin), _rayparams)
+    return result == nil 
+end
+
+--// LOGIC TÌM MỤC TIÊU BAN ĐẦU
+local function getClosestVisible()
+    local target, bestPart, minPadding = nil, nil, fov
+    local screenCenter = Camera.ViewportSize / 2
+    local players = Players:GetPlayers()
+
+    local partsToScan
+    if wallCheck then
+        -- BẬT WALL CHECK: Quét tất cả các bộ phận
+        partsToScan = {
+            "Head", "HumanoidRootPart", "UpperTorso", "LowerTorso", "Torso",
+            "RightUpperArm", "LeftUpperArm", "RightLowerArm", "LeftLowerArm",
+            "RightUpperLeg", "LeftUpperLeg", "RightLowerLeg", "LeftLowerLeg"
+        }
+    else
+        -- TẮT WALL CHECK: Chỉ quét các phần thân chính
+        partsToScan = {
+            "Head", "HumanoidRootPart", "UpperTorso", "LowerTorso", "Torso",
+            "RightUpperArm", "LeftUpperArm", "RightLowerArm", "LeftLowerArm",
+            "RightUpperLeg", "LeftUpperLeg", "RightLowerLeg", "LeftLowerLeg"
+        }
+    end
+
+    for i = 1, #players do
+        local v = players[i]
+        if v == LocalPlayer or whitelisted[v.Name] or (v.Team and teamWhitelisted[v.Team.Name]) then continue end
+        local char = v.Character
+        if char and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 then
+            if teamCheck and v.Team == LocalPlayer.Team then continue end
+
+            -- Kiểm tra khoảng cách 3D cơ bản trước khi quét chi tiết
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                local dist3D = (hrp.Position - Camera.CFrame.Position).Magnitude
+                if dist3D > maxDistance then continue end
+            end
+
+            for _, pName in ipairs(partsToScan) do
+                local part = char:FindFirstChild(pName)
+                if part then
+                    local pos, onScreen = Camera:WorldToViewportPoint(part.Position)
+                    if onScreen then
+                        local dist = (Vector2.new(pos.X, pos.Y) - screenCenter).Magnitude
+                        if dist < minPadding then
+                            -- Nếu bật Wall Check thì chỉ khóa khi nhìn thấy địch ngoài đời
+                            if not wallCheck or isVisible(part) then
+                                minPadding, target, bestPart = dist, v, pName
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return target, bestPart
+end
+
+--// VÒNG LẶP KHÓA TÂM CHẶT CHẼ
+local currentTarget, currentPart
+RunService.RenderStepped:Connect(function()
+    if not aimbotEnabled then FOVring.Visible = false; currentTarget = nil; return end
+    FOVring.Visible = true; FOVring.Position = Camera.ViewportSize / 2
+    
+    if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+
+        -- KHÓA CHẶT ĐỊCH CŨ: Chỉ nhả khi địch chết hoặc mất bộ phận, dính cứng ngắc xuyên tường
+        if currentTarget and currentTarget.Character and currentTarget.Character:FindFirstChild("Humanoid") and currentTarget.Character.Humanoid.Health > 0 then
+            local p = currentTarget.Character:FindFirstChild(currentPart)
+            if not p then
+                currentTarget = nil 
+            end
+        else
+            currentTarget = nil 
+        end
+
+        -- KHÓA ĐỊCH MỚI (Nếu chưa có ai lọt vào tầm ngắm)
+        if not currentTarget then 
+            currentTarget, currentPart = getClosestVisible() 
+        end
+
+        -- DÍ TÂM LIÊN TỤC VÀO MỤC TIÊU ĐANG KHÓA
+        if currentTarget and currentTarget.Character and currentPart then
+            local part = currentTarget.Character:FindFirstChild(currentPart)
+            if part then
+                local hrp = currentTarget.Character:FindFirstChild("HumanoidRootPart")
+                local velocity = (hrp and hrp.Velocity) or Vector3.zero
+                local targetPos = part.Position + (velocity * predictionFactor)
+                
+                Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, targetPos), smoothing)
+                FOVring.Color = Color3.fromRGB(0, 255,  green)
+            end
+        else
+            FOVring.Color = Color3.fromRGB(255, 128, 128)
+        end
+    else
+        -- KHI THẢ CHUỘT PHẢI: Buông mục tiêu ngay lập tức
+        currentTarget = nil
+        FOVring.Color = Color3.fromRGB(255, 128, 128)
+    end
+end)
