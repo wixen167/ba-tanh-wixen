@@ -19,12 +19,11 @@ local Teams = game:GetService("Teams")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
---// TỐI ƯU RAYCAST (DÙNG CHUNG 1 PARAMS)
+--// TỐI ƯU RAYCAST (DÙNG CHUNG 1 PARAMS VÀ TỰ ĐỘNG BỎ QUA TẤT CẢ NGƯỜI CHƠI KHÁC)
 local _rayparams = RaycastParams.new()
 _rayparams.FilterType = Enum.RaycastFilterType.Exclude
 _rayparams.IgnoreWater = true
 
--- KHẮC PHỤC TRIỆT ĐỂ SỤT FPS: Cập nhật danh sách bỏ qua ngầm mỗi 1 giây thay vì chạy liên tục từng khung hình
 task.spawn(function()
     while true do
         local ignoreList = {Camera}
@@ -100,7 +99,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     if input.KeyCode == Enum.KeyCode.RightControl then 
         Main.Visible = not Main.Visible 
-    elseif input.KeyCode == toggleKey then -- ẤN NÚT G ĐỂ BẬT/TẮT CODES
+    elseif input.KeyCode == toggleKey then 
         aimbotEnabled = not aimbotEnabled
         updateAimbotUI()
     end 
@@ -148,7 +147,6 @@ local function getClosestVisible()
         if char and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 then
             if teamCheck and v.Team == LocalPlayer.Team then continue end
 
-            -- Kiểm tra khoảng cách 3D cơ bản trước khi quét chi tiết
             local hrp = char:FindFirstChild("HumanoidRootPart")
             if hrp then
                 local dist3D = (hrp.Position - Camera.CFrame.Position).Magnitude
@@ -162,7 +160,7 @@ local function getClosestVisible()
                     if onScreen then
                         local dist = (Vector2.new(pos.X, pos.Y) - screenCenter).Magnitude
                         if dist < minPadding then
-                            -- Nếu bật Wall Check thì chỉ khóa khi nhìn thấy địch ngoài đời
+                            -- Nếu bật Wall Check thì phải kiểm tra có bị chắn không trước khi khóa mục tiêu mới
                             if not wallCheck or isVisible(part) then
                                 minPadding, target, bestPart = dist, v, pName
                             end
@@ -175,7 +173,7 @@ local function getClosestVisible()
     return target, bestPart
 end
 
---// VÒNG LẶP KHÓA TÂM CHẶT CHẼ
+--// VÒNG LẶP KHÓA TÂM CHUẨN XÁC
 local currentTarget, currentPart
 RunService.RenderStepped:Connect(function()
     if not aimbotEnabled then FOVring.Visible = false; currentTarget = nil; return end
@@ -183,22 +181,29 @@ RunService.RenderStepped:Connect(function()
     
     if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
 
-        -- KHÓA CHẶT ĐỊCH CŨ: Chỉ nhả khi địch chết hoặc mất bộ phận, dính cứng ngắc xuyên tường
+        -- KIỂM TRA ĐỊCH ĐANG KHÓA
         if currentTarget and currentTarget.Character and currentTarget.Character:FindFirstChild("Humanoid") and currentTarget.Character.Humanoid.Health > 0 then
             local p = currentTarget.Character:FindFirstChild(currentPart)
             if not p then
                 currentTarget = nil 
+            else
+                -- LOGIC ĐÃ SỬA Ở ĐÂY: 
+                -- Nếu bật Wall Check mà mục tiêu chạy núp sau TƯỜNG -> NHẢ TÂM NGAY LẬP TỨC
+                -- (Không lo bị nhả khi người chơi khác đi ngang qua vì danh sách Raycast đã tự loại trừ tất cả các người chơi)
+                if wallCheck and not isVisible(p) then
+                    currentTarget = nil
+                end
             end
         else
             currentTarget = nil 
         end
 
-        -- KHÓA ĐỊCH MỚI (Nếu chưa có ai lọt vào tầm ngắm)
+        -- KHÓA ĐỊCH MỚI
         if not currentTarget then 
             currentTarget, currentPart = getClosestVisible() 
         end
 
-        -- DÍ TÂM LIÊN TỤC VÀO MỤC TIÊU ĐANG KHÓA
+        -- DÍ TÂM LIÊN TỤC
         if currentTarget and currentTarget.Character and currentPart then
             local part = currentTarget.Character:FindFirstChild(currentPart)
             if part then
@@ -207,13 +212,12 @@ RunService.RenderStepped:Connect(function()
                 local targetPos = part.Position + (velocity * predictionFactor)
                 
                 Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, targetPos), smoothing)
-                FOVring.Color = Color3.fromRGB(0, 255,  green)
+                FOVring.Color = Color3.fromRGB(0, 255, 0) -- Đã fix lỗi biến green không tồn tại ở đây
             end
         else
             FOVring.Color = Color3.fromRGB(255, 128, 128)
         end
     else
-        -- KHI THẢ CHUỘT PHẢI: Buông mục tiêu ngay lập tức
         currentTarget = nil
         FOVring.Color = Color3.fromRGB(255, 128, 128)
     end
