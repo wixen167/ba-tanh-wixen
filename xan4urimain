@@ -1,7 +1,7 @@
 -- // SCRIPT 1: ESP
 task.spawn(function()
     pcall(function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/wixen167/ba-tanh-wixen/refs/heads/main/%C3%A9t%20bi"))()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/wixen167/ba-tanh-wixen/refs/heads/main/%C3%A9t%20bi%20xan%204uri"))()
     end)
 end)
 
@@ -11,7 +11,7 @@ task.wait(1)
 -- // SCRIPT 2: AIMBOT
 task.spawn(function()
     pcall(function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/wixen167/ba-tanh-wixen/refs/heads/main/%C3%A0m%20am%20v%C3%AA%205"))()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/wixen167/ba-tanh-wixen/refs/heads/main/aimxan4uri3"))()
     end)
 end)
 
