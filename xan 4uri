@@ -1,7 +1,7 @@
 --ESP
 print("ESP xong rồi")
 pcall(function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/wixen167/ba-tanh-wixen/refs/heads/main/%C3%A9t%20bi"))()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/wixen167/ba-tanh-wixen/refs/heads/main/%C3%A9t%20bi%20xan%204uri"))()
 end)
 
 -- Nghỉ 2 giây để Aimbot load xong UI hoặc cấu hình
