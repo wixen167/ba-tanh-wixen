@@ -1,26 +1,16 @@
--- // SCRIPT 1: ESP
-task.spawn(function()
-    pcall(function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/wixen167/ba-tanh-wixen/refs/heads/main/%C3%A9t%20bi"))()
-    end)
+--ESP
+print("ESP xong rồi")
+pcall(function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/wixen167/ba-tanh-wixen/refs/heads/main/%C3%A9t%20bi%20xan%204uri"))()
 end)
 
--- Nghỉ 2 giây để ESP load xong mượt mà rồi mới chạy cái tiếp theo
-task.wait(1)
+-- Nghỉ 2 giây để Aimbot load xong UI hoặc cấu hình
+task.wait(2) 
 
--- // SCRIPT 2: AIMBOT
-task.spawn(function()
-    pcall(function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/wixen167/ba-tanh-wixen/refs/heads/main/%C3%A0m%20am%20v%C3%AA%205"))()
-    end)
+--Aim
+print("Đang khởi động Aim")
+pcall(function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/wixen167/ba-tanh-wixen/refs/heads/main/xan4uri3"))()
 end)
 
--- Nghỉ tiếp 2 giây (Ông có thể sửa thành task.wait(1) hoặc số khác tùy ý)
-task.wait(1)
-
--- // SCRIPT 3: hitbox
-task.spawn(function()
-    pcall(function()
-        loadstring(game:HttpGet("https://pastefy.app/ItfO0tdg/raw"))()
-    end)
-end)
+print("Đã kích hoạt xong cả 2 theo thứ tự!")
