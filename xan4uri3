@@ -135,8 +135,7 @@ local function getClosestVisible()
         -- TẮT WALL CHECK: Chỉ quét các phần thân chính
         partsToScan = {
             "Head", "HumanoidRootPart", "UpperTorso", "LowerTorso", "Torso",
-            "RightUpperArm", "LeftUpperArm", "RightLowerArm", "LeftLowerArm",
-            "RightUpperLeg", "LeftUpperLeg", "RightLowerLeg", "LeftLowerLeg"
+            "RightUpperArm", "LeftUpperArm"
         }
     end
 
