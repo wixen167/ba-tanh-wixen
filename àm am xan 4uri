@@ -1,0 +1,394 @@
+--// KIỂM TRA VÀ XÓA GUI CŨ
+local oldGui = game.CoreGui:FindFirstChild("WuyseensOptimized")
+if oldGui then oldGui:Destroy() end
+
+if _G.WSS_Drawings then
+    for _, plrDrawings in pairs(_G.WSS_Drawings) do
+        -- Fix dọn dẹp sạch sẽ cả Highlight để tránh rác RAM
+        for key, obj in pairs(plrDrawings) do 
+            pcall(function() 
+                if key == "Highlight" then obj:Destroy() else obj:Remove() end 
+            end) 
+        end
+    end
+end
+_G.WSS_Drawings = {}
+
+--// SETTINGS
+_G.FriendColor = Color3.fromRGB(0, 255, 255)
+_G.EnemyColor = Color3.fromRGB(255, 0, 0)
+_G.UseTeamColor = true
+_G.MaxDistance = 1500
+local MaxLimit = 9000 
+
+local espEnabled = true
+local showBox = true
+local showHealthbar = true
+local showName = true
+local showTracer = false
+local showHighlight = true
+local minimized = false
+
+--// SERVICES
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local camera = workspace.CurrentCamera
+
+--// GUI MENU
+local screenGui = Instance.new("ScreenGui", game.CoreGui)
+screenGui.Name = "WuyseensOptimized"
+screenGui.ResetOnSpawn = false
+
+-- TÍCH HỢP PHÍM RIGHT SHIFT ẨN/HIỆN MENU
+UserInputService.InputBegan:Connect(function(input, processed)
+    if not processed and input.KeyCode == Enum.KeyCode.RightShift then
+        screenGui.Enabled = not screenGui.Enabled
+    end
+end)
+
+local mainFrame = Instance.new("Frame", screenGui)
+mainFrame.Size = UDim2.new(0, 190, 0, 360)
+mainFrame.Position = UDim2.new(0, 60, 0, 200)
+mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true
+Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 10)
+
+-- Bảng tìm người (Có ô Search)
+local playerListFrame = Instance.new("Frame", screenGui)
+playerListFrame.Size = UDim2.new(0, 220, 0, 360)
+playerListFrame.Position = UDim2.new(0, 260, 0, 200)
+playerListFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+playerListFrame.Visible = false
+Instance.new("UICorner", playerListFrame)
+
+local searchBox = Instance.new("TextBox", playerListFrame)
+searchBox.Size = UDim2.new(1, -20, 0, 30)
+searchBox.Position = UDim2.new(0, 10, 0, 10)
+searchBox.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+searchBox.PlaceholderText = "Gõ tên để tìm..."
+searchBox.Text = ""
+searchBox.TextColor3 = Color3.new(1,1,1)
+searchBox.Font = Enum.Font.Gotham
+searchBox.TextSize = 12
+Instance.new("UICorner", searchBox)
+
+local scrollList = Instance.new("ScrollingFrame", playerListFrame)
+scrollList.Size = UDim2.new(1, -10, 1, -60)
+scrollList.Position = UDim2.new(0, 5, 0, 50)
+scrollList.BackgroundTransparency = 1
+scrollList.ScrollBarThickness = 2
+local listLayout = Instance.new("UIListLayout", scrollList)
+listLayout.Padding = UDim.new(0, 5)
+
+-- Header
+local titleBar = Instance.new("Frame", mainFrame)
+titleBar.Size = UDim2.new(1, 0, 0, 35)
+titleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+Instance.new("UICorner", titleBar).CornerRadius = UDim.new(0, 10)
+
+local titleLabel = Instance.new("TextLabel", titleBar)
+titleLabel.Size = UDim2.new(1, -40, 1, 0)
+titleLabel.Position = UDim2.new(0, 12, 0, 0)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "WUYSEENS"
+titleLabel.TextColor3 = Color3.new(1, 1, 1)
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.TextSize = 14
+titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+local minBtn = Instance.new("TextButton", titleBar)
+minBtn.Size = UDim2.new(0, 25, 0, 25)
+minBtn.Position = UDim2.new(1, -30, 0, 5)
+minBtn.Text = "-"
+minBtn.Font = Enum.Font.GothamBold
+minBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+minBtn.TextColor3 = Color3.new(1, 1, 1)
+Instance.new("UICorner", minBtn).CornerRadius = UDim.new(0, 5)
+
+local buttonList = Instance.new("Frame", mainFrame)
+buttonList.Size = UDim2.new(1, 0, 1, -45)
+buttonList.Position = UDim2.new(0, 0, 0, 40)
+buttonList.BackgroundTransparency = 1
+local layout = Instance.new("UIListLayout", buttonList)
+layout.Padding = UDim.new(0, 5)
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+-- SLIDER
+local sliderFrame = Instance.new("Frame", buttonList)
+sliderFrame.Size = UDim2.new(0, 170, 0, 45)
+sliderFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+Instance.new("UICorner", sliderFrame).CornerRadius = UDim.new(0, 6)
+
+local sliderLabel = Instance.new("TextLabel", sliderFrame)
+sliderLabel.Size = UDim2.new(1, -20, 0, 20)
+sliderLabel.Position = UDim2.new(0, 10, 0, 5)
+sliderLabel.BackgroundTransparency = 1
+sliderLabel.Text = "CỰ LY: " .. _G.MaxDistance .. "m"
+sliderLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+sliderLabel.Font = Enum.Font.GothamSemibold
+sliderLabel.TextSize = 11
+
+local sliderBack = Instance.new("Frame", sliderFrame)
+sliderBack.Size = UDim2.new(0, 150, 0, 6)
+sliderBack.Position = UDim2.new(0.5, -75, 0, 30)
+sliderBack.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+Instance.new("UICorner", sliderBack).CornerRadius = UDim.new(1, 0)
+
+local sliderFill = Instance.new("Frame", sliderBack)
+sliderFill.Size = UDim2.new(_G.MaxDistance / MaxLimit, 0, 1, 0)
+sliderFill.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+Instance.new("UICorner", sliderFill).CornerRadius = UDim.new(1, 0)
+
+local function updateSlider(input)
+    local pos = math.clamp((input.Position.X - sliderBack.AbsolutePosition.X) / sliderBack.AbsoluteSize.X, 0, 1)
+    sliderFill.Size = UDim2.new(pos, 0, 1, 0)
+    _G.MaxDistance = math.floor(pos * MaxLimit)
+    sliderLabel.Text = "CỰ LY: " .. _G.MaxDistance .. "m"
+end
+
+local dragging = false
+sliderBack.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true updateSlider(input) end end)
+UserInputService.InputChanged:Connect(function(input) if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then updateSlider(input) end end)
+UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end end)
+
+-- Buttons
+local function createBtn(text, defaultState)
+    local btn = Instance.new("TextButton", buttonList)
+    btn.Size = UDim2.new(0, 170, 0, 30)
+    btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    btn.Font = Enum.Font.GothamSemibold
+    btn.Text = text .. ": " .. (defaultState and "ON" or "OFF")
+    btn.TextColor3 = defaultState and Color3.new(1,1,1) or Color3.fromRGB(150,150,150)
+    btn.TextSize = 10
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    return btn
+end
+
+local masterBtn = createBtn("ESP MASTER", espEnabled)
+local boxBtn = createBtn("KHUNG (BOX)", showBox)
+local hpBtn = createBtn("THANH MÁU", showHealthbar)
+local nameBtn = createBtn("TÊN NGƯỜI CHƠI", showName)
+local lineBtn = createBtn("ĐƯỜNG KẺ", showTracer)
+local highBtn = createBtn("HIGHLIGHT", showHighlight)
+local findOpenBtn = createBtn("🔍 TÌM NGƯỜI", false) findOpenBtn.Text = "🔍 TÌM NGƯỜI"
+
+-- Ping Logic
+local function PingPlayer(targetPlr)
+    local dot = Drawing.new("Circle")
+    dot.Filled = true
+    dot.Radius = 20
+    dot.Color = Color3.new(1, 1, 0)
+    dot.Transparency = 1
+    local conn
+    local start = tick()
+    conn = RunService.RenderStepped:Connect(function()
+        if tick() - start > 3 or not targetPlr.Character then dot:Remove(); conn:Disconnect() return end
+        local hrp = targetPlr.Character:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            local pos, vis = camera:WorldToViewportPoint(hrp.Position)
+            dot.Visible = vis
+            dot.Position = Vector2.new(pos.X, pos.Y)
+            dot.Radius = 10 + (math.sin(tick() * 25) * 10)
+        else dot.Visible = false end
+    end)
+end
+
+-- Refresh Player List
+local function updatePlayerList()
+    for _, v in pairs(scrollList:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
+    local filter = searchBox.Text:lower()
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then
+            if p.Name:lower():find(filter) or p.DisplayName:lower():find(filter) then
+                local b = Instance.new("TextButton", scrollList)
+                b.Size = UDim2.new(1, 0, 0, 35)
+                b.BackgroundColor3 = Color3.fromRGB(40,40,40)
+                b.TextColor3 = Color3.new(1,1,1)
+                b.Font = Enum.Font.Gotham
+                b.TextSize = 11
+                b.Text = p.DisplayName .. " (@" .. p.Name .. ")"
+                Instance.new("UICorner", b)
+                b.MouseButton1Click:Connect(function() PingPlayer(p); playerListFrame.Visible = false end)
+            end
+        end
+    end
+end
+
+searchBox:GetPropertyChangedSignal("Text"):Connect(updatePlayerList)
+findOpenBtn.MouseButton1Click:Connect(function() 
+    playerListFrame.Visible = not playerListFrame.Visible 
+    if playerListFrame.Visible then updatePlayerList() end
+end)
+
+minBtn.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    mainFrame:TweenSize(minimized and UDim2.new(0, 190, 0, 35) or UDim2.new(0, 190, 0, 360), "Out", "Quad", 0.3, true)
+    buttonList.Visible = not minimized; minBtn.Text = minimized and "+" or "-"
+end)
+
+local function updateBtn(btn, state, label)
+    btn.Text = label .. ": " .. (state and "ON" or "OFF")
+    btn.TextColor3 = state and Color3.new(1,1,1) or Color3.fromRGB(150,150,150)
+end
+
+masterBtn.MouseButton1Click:Connect(function() espEnabled = not espEnabled updateBtn(masterBtn, espEnabled, "ESP MASTER") end)
+boxBtn.MouseButton1Click:Connect(function() showBox = not showBox updateBtn(boxBtn, showBox, "KHUNG (BOX)") end)
+hpBtn.MouseButton1Click:Connect(function() showHealthbar = not showHealthbar updateBtn(hpBtn, showHealthbar, "THANH MÁU") end)
+nameBtn.MouseButton1Click:Connect(function() showName = not showName updateBtn(nameBtn, showName, "TÊN NGƯỜI CHƠI") end)
+lineBtn.MouseButton1Click:Connect(function() showTracer = not showTracer updateBtn(lineBtn, showTracer, "ĐƯỜNG KẺ") end)
+highBtn.MouseButton1Click:Connect(function() showHighlight = not showHighlight updateBtn(highBtn, showHighlight, "HIGHLIGHT") end)
+
+--// HÀM KIỂM TRA TRUY NÃ
+local function checkWanted(plr)
+    local wanted = false
+    pcall(function()
+        local attr = plr:GetAttribute("Wanted") or plr:GetAttribute("Stars") or plr:GetAttribute("WantedLevel") or plr:GetAttribute("Bounty")
+        if attr and tonumber(attr) > 0 then wanted = true return end
+        
+        local ls = plr:FindFirstChild("leaderstats")
+        if ls then
+            local lsStars = ls:FindFirstChild("Stars") or ls:FindFirstChild("Wanted") or ls:FindFirstChild("Bounty") or ls:FindFirstChild("WantedLevel")
+            if lsStars and tonumber(lsStars.Value) > 0 then wanted = true end
+        end
+    end)
+    return wanted
+end
+
+--// ESP CORE LOGIC
+local function createESP(plr)
+    -- TỐI ƯU HÓA: Tạo Highlight 1 lần duy nhất cho mỗi player, giấu trong screenGui
+    local hl = Instance.new("Highlight", screenGui)
+    hl.Name = "WSS_FastHighlight"
+    hl.OutlineTransparency = 0.5
+    hl.FillTransparency = 0.5
+    hl.Enabled = false
+
+    _G.WSS_Drawings[plr] = {
+        Outline = Drawing.new("Square"),
+        Health = Drawing.new("Line"),
+        Name = Drawing.new("Text"),
+        Tracer = Drawing.new("Line"),
+        WantedText = Drawing.new("Text"), -- CHỮ TRUY NÃ
+        Highlight = hl -- Lưu vào cache
+    }
+    local d = _G.WSS_Drawings[plr]
+    d.Outline.Thickness = 1
+    d.Health.Thickness = 2
+    
+    d.Name.Center = true
+    d.Name.Outline = true
+    d.Name.OutlineColor = Color3.new(0, 0, 0)
+    d.Name.Size = 11
+    d.Name.Font = 1
+    
+    d.Tracer.Thickness = 1
+    d.Tracer.Transparency = 0.7
+    
+    -- Config chữ Truy Nã
+    d.WantedText.Center = true
+    d.WantedText.Outline = true
+    d.WantedText.OutlineColor = Color3.new(0, 0, 0)
+    d.WantedText.Size = 8
+    d.WantedText.Font = 1
+    d.WantedText.Color = Color3.fromRGB(255, 170, 0) -- Màu cam vàng giống màu ngôi sao
+    d.WantedText.Text = "WANTED"
+end
+
+for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer then createESP(p) end end
+Players.PlayerAdded:Connect(function(p) if p ~= LocalPlayer then createESP(p) end end)
+Players.PlayerRemoving:Connect(function(p) 
+    if _G.WSS_Drawings[p] then 
+        for key, v in pairs(_G.WSS_Drawings[p]) do 
+            if key == "Highlight" then v:Destroy() else v:Remove() end 
+        end 
+        _G.WSS_Drawings[p] = nil 
+    end 
+end)
+
+--// RENDER LOOP
+RunService.RenderStepped:Connect(function()
+    local camPos = camera.CFrame.Position
+    local myTeamColor = LocalPlayer.TeamColor -- Cache màu team để không gọi lại nghìn lần
+
+    for plr, box in pairs(_G.WSS_Drawings) do
+        local char = plr.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        local hum = char and char:FindFirstChild("Humanoid")
+        
+        if espEnabled and char and hrp and hum and hum.Health > 0 then
+            local dist = (hrp.Position - camPos).Magnitude
+            if dist < _G.MaxDistance then
+                local pos, vis = camera:WorldToViewportPoint(hrp.Position)
+                
+                -- TỐI ƯU HIGHLIGHT: Chỉ update Adornee, không tạo rác
+                if showHighlight then
+                    box.Highlight.Adornee = char
+                    box.Highlight.FillColor = (_G.UseTeamColor and plr.TeamColor.Color) or (plr.TeamColor == myTeamColor and _G.FriendColor or _G.EnemyColor)
+                    box.Highlight.Enabled = true
+                else
+                    box.Highlight.Enabled = false
+                end
+
+                if vis then
+                    local color = (_G.UseTeamColor and plr.TeamColor.Color) or (plr.TeamColor == myTeamColor and _G.FriendColor or _G.EnemyColor)
+                    local scale = 1 / (dist * math.tan(math.rad(camera.FieldOfView / 2)) * 2) * 1000
+                    local w, h = 4 * scale, 6 * scale
+
+                    -- Khung Box
+                    box.Outline.Visible = showBox
+                    if showBox then
+                        box.Outline.Size = Vector2.new(w, h)
+                        box.Outline.Position = Vector2.new(pos.X - w/2, pos.Y - h/2)
+                        box.Outline.Color = color
+                    end
+
+                    -- Tên người chơi
+                    box.Name.Visible = showName
+                    if showName then
+                        box.Name.Position = Vector2.new(pos.X, pos.Y - h/2 - 20)
+                        box.Name.Text = plr.DisplayName .. " ["..math.floor(dist).."m]"
+                        box.Name.Color = color
+                    end
+
+                    -- Thanh máu
+                    box.Health.Visible = showHealthbar
+                    if showHealthbar then
+                        local hpP = hum.Health / hum.MaxHealth
+                        box.Health.From = Vector2.new(pos.X - w/2 - 5, pos.Y + h/2)
+                        box.Health.To = Vector2.new(pos.X - w/2 - 5, pos.Y + h/2 - (h * hpP))
+                        box.Health.Color = Color3.fromHSV(hpP * 0.3, 1, 1)
+                    end
+
+                    -- Đường kẻ Tracer
+                    box.Tracer.Visible = showTracer
+                    if showTracer then
+                        box.Tracer.From = Vector2.new(camera.ViewportSize.X/2, camera.ViewportSize.Y)
+                        box.Tracer.To = Vector2.new(pos.X, pos.Y + h/2)
+                        box.Tracer.Color = color
+                    end
+                    
+                    -- Chữ TRUY NÃ ở dưới
+                    if checkWanted(plr) then
+                        box.WantedText.Visible = true
+                        box.WantedText.Position = Vector2.new(pos.X, pos.Y + h/2 + 5)
+                    else
+                        box.WantedText.Visible = false
+                    end
+                    
+                    continue
+                end
+            end
+        end
+        -- Ẩn hết nếu ở xa hoặc chết/tắt ESP
+        box.Outline.Visible = false
+        box.Health.Visible = false
+        box.Name.Visible = false
+        box.Tracer.Visible = false
+        box.WantedText.Visible = false
+        box.Highlight.Enabled = false
+    end
+end)
