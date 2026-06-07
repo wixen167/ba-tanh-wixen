@@ -22,7 +22,7 @@ _G.MaxDistance = 1500
 local MaxLimit = 9000 
 
 local espEnabled = true
-local showBox = true
+local showBox = false
 local showHealthbar = true
 local showName = true
 local showTracer = false
