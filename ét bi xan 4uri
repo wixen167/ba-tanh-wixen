@@ -292,7 +292,7 @@ local function createESP(plr)
     d.WantedText.Center = true
     d.WantedText.Outline = true
     d.WantedText.OutlineColor = Color3.new(0, 0, 0)
-    d.WantedText.Size = 8
+    d.WantedText.Size = 6
     d.WantedText.Font = 1
     d.WantedText.Color = Color3.fromRGB(255, 170, 0) -- Màu cam vàng giống màu ngôi sao
     d.WantedText.Text = "WANTED"
