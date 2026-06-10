@@ -44,7 +44,7 @@ if game.CoreGui:FindFirstChild("Aimbot_FriendMenu") then game.CoreGui.Aimbot_Fri
 local Gui = Instance.new("ScreenGui", game.CoreGui); Gui.Name = "Aimbot_FriendMenu"
 local Main = Instance.new("Frame", Gui); Main.Size = UDim2.new(0, 180, 0, 310); Main.Position = UDim2.new(0, 20, 0.4, 0); Main.BackgroundColor3 = Color3.fromRGB(36, 36, 37); Main.BorderSizePixel = 0; Main.Active = true; Main.Draggable = true
 local Header = Instance.new("Frame", Main); Header.Size = UDim2.new(1, 0, 0, 25); Header.BackgroundColor3 = Color3.fromRGB(46, 46, 47); Header.BorderSizePixel = 0
-local Title = Instance.new("TextLabel", Header); Title.Size = UDim2.new(1, 0, 1, 0); Title.Text = "  AIMBOT MANAGER"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 14; Title.TextXAlignment = Enum.TextXAlignment.Left; Title.BackgroundTransparency = 1
+local Title = Instance.new("TextLabel", Header); Title.Size = UDim2.new(1, 0, 1, 0); Title.Text = "  AM BÓT SEN BÁ TÁNH"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 14; Title.TextXAlignment = Enum.TextXAlignment.Left; Title.BackgroundTransparency = 1
 
 -- Nút Bật/Tắt Aimbot
 local ToggleBtn = Instance.new("TextButton", Main); ToggleBtn.Size = UDim2.new(1, -10, 0, 25); ToggleBtn.Position = UDim2.new(0, 5, 0, 30); ToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 50); ToggleBtn.Text = "Aimbot: ON (" .. toggleKey.Name .. ")"; ToggleBtn.TextColor3 = Color3.new(1, 1, 1); ToggleBtn.Font = Enum.Font.SourceSansBold; ToggleBtn.TextSize = 14; ToggleBtn.BorderSizePixel = 0
