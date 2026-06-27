@@ -10,7 +10,7 @@ task.wait(2)
 --Aim
 print("Đang khởi động Aim")
 pcall(function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/wixen167/ba-tanh-wixen/refs/heads/main/am%20p%C3%A1t"))()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/wixen167/ba-tanh-wixen/refs/heads/main/%C3%A0m%20am%20v%C3%AA%205"))()
 end)
 
 print("Đã kích hoạt xong cả 2 theo thứ tự!")
