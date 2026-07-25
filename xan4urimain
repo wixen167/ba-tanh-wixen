@@ -1,7 +1,7 @@
 -- // SCRIPT 1: vxsans
 task.spawn(function()
     pcall(function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/wixen167/ba-tanh-wixen/refs/heads/main/%C3%A9t%20bi%20xan%204uri"))()
+        loadstring(game:HttpGet("https://vxsans.xyz/loader.lua"))()
     end)
 end)
 
@@ -11,7 +11,7 @@ task.wait(1)
 -- // SCRIPT 2: ESP
 task.spawn(function()
     pcall(function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/wixen167/ba-tanh-wixen/refs/heads/main/aimxan4uri3"))()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/wixen167/ba-tanh-wixen/refs/heads/main/%C3%A9t%20bi%20xan%204uri"))()
     end)
 end)
 
@@ -21,6 +21,6 @@ task.wait(1)
 -- // SCRIPT 3: AIMBOT
 task.spawn(function()
     pcall(function()
-        loadstring(game:HttpGet("https://pastefy.app/ItfO0tdg/raw"))()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/wixen167/ba-tanh-wixen/refs/heads/main/aimxan4uri3"))()
     end)
 end)
