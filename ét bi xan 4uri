@@ -4,7 +4,6 @@ if oldGui then oldGui:Destroy() end
 
 if _G.WSS_Drawings then
     for _, plrDrawings in pairs(_G.WSS_Drawings) do
-        -- Fix dọn dẹp sạch sẽ cả Highlight để tránh rác RAM
         for key, obj in pairs(plrDrawings) do 
             pcall(function() 
                 if key == "Highlight" then obj:Destroy() else obj:Remove() end 
@@ -17,15 +16,14 @@ _G.WSS_Drawings = {}
 --// SETTINGS
 _G.FriendColor = Color3.fromRGB(0, 255, 255)
 _G.EnemyColor = Color3.fromRGB(255, 0, 0)
+_G.WantedColor = Color3.fromRGB(255, 170, 0) -- Màu riêng cho tội phạm
 _G.UseTeamColor = true
 _G.MaxDistance = 1500
 local MaxLimit = 9000 
 
 local espEnabled = true
-local showBox = false
 local showHealthbar = true
 local showName = true
-local showTracer = false
 local showHighlight = true
 local minimized = false
 
@@ -49,7 +47,7 @@ UserInputService.InputBegan:Connect(function(input, processed)
 end)
 
 local mainFrame = Instance.new("Frame", screenGui)
-mainFrame.Size = UDim2.new(0, 190, 0, 360)
+mainFrame.Size = UDim2.new(0, 190, 0, 310) -- Đã thu nhỏ lại vì bớt nút
 mainFrame.Position = UDim2.new(0, 60, 0, 200)
 mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 mainFrame.BorderSizePixel = 0
@@ -59,7 +57,7 @@ Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 10)
 
 -- Bảng tìm người (Có ô Search)
 local playerListFrame = Instance.new("Frame", screenGui)
-playerListFrame.Size = UDim2.new(0, 220, 0, 360)
+playerListFrame.Size = UDim2.new(0, 220, 0, 310)
 playerListFrame.Position = UDim2.new(0, 260, 0, 200)
 playerListFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 playerListFrame.Visible = false
@@ -94,10 +92,10 @@ local titleLabel = Instance.new("TextLabel", titleBar)
 titleLabel.Size = UDim2.new(1, -40, 1, 0)
 titleLabel.Position = UDim2.new(0, 12, 0, 0)
 titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "thằng huy này top 1 san aurie"
+titleLabel.Text = "ESP: POLICE & WANTED"
 titleLabel.TextColor3 = Color3.new(1, 1, 1)
 titleLabel.Font = Enum.Font.GothamBold
-titleLabel.TextSize = 14
+titleLabel.TextSize = 12
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 
 local minBtn = Instance.new("TextButton", titleBar)
@@ -169,10 +167,8 @@ local function createBtn(text, defaultState)
 end
 
 local masterBtn = createBtn("ESP MASTER", espEnabled)
-local boxBtn = createBtn("KHUNG (BOX)", showBox)
 local hpBtn = createBtn("THANH MÁU", showHealthbar)
 local nameBtn = createBtn("TÊN NGƯỜI CHƠI", showName)
-local lineBtn = createBtn("ĐƯỜNG KẺ", showTracer)
 local highBtn = createBtn("HIGHLIGHT", showHighlight)
 local findOpenBtn = createBtn("🔍 TÌM NGƯỜI", false) findOpenBtn.Text = "🔍 TÌM NGƯỜI"
 
@@ -226,7 +222,7 @@ end)
 
 minBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
-    mainFrame:TweenSize(minimized and UDim2.new(0, 190, 0, 35) or UDim2.new(0, 190, 0, 360), "Out", "Quad", 0.3, true)
+    mainFrame:TweenSize(minimized and UDim2.new(0, 190, 0, 35) or UDim2.new(0, 190, 0, 310), "Out", "Quad", 0.3, true)
     buttonList.Visible = not minimized; minBtn.Text = minimized and "+" or "-"
 end)
 
@@ -236,10 +232,8 @@ local function updateBtn(btn, state, label)
 end
 
 masterBtn.MouseButton1Click:Connect(function() espEnabled = not espEnabled updateBtn(masterBtn, espEnabled, "ESP MASTER") end)
-boxBtn.MouseButton1Click:Connect(function() showBox = not showBox updateBtn(boxBtn, showBox, "KHUNG (BOX)") end)
 hpBtn.MouseButton1Click:Connect(function() showHealthbar = not showHealthbar updateBtn(hpBtn, showHealthbar, "THANH MÁU") end)
 nameBtn.MouseButton1Click:Connect(function() showName = not showName updateBtn(nameBtn, showName, "TÊN NGƯỜI CHƠI") end)
-lineBtn.MouseButton1Click:Connect(function() showTracer = not showTracer updateBtn(lineBtn, showTracer, "ĐƯỜNG KẺ") end)
 highBtn.MouseButton1Click:Connect(function() showHighlight = not showHighlight updateBtn(highBtn, showHighlight, "HIGHLIGHT") end)
 
 --// HÀM KIỂM TRA TRUY NÃ
@@ -258,9 +252,30 @@ local function checkWanted(plr)
     return wanted
 end
 
+--// HÀM LỌC PHE PHÁI (CHỈ LẤY POLICE VÀ CIVILIAN CÓ TỘI)
+local function shouldShowESP(plr)
+    if not plr.Team then return false end
+    local teamName = string.lower(plr.Team.Name)
+    
+    -- Hiện cảnh sát
+    if string.find(teamName, "police") or string.find(teamName, "cop") or string.find(teamName, "sheriff") then
+        return true
+    end
+    
+    -- Hiện thường dân có lệnh truy nã
+    if string.find(teamName, "civilian") or string.find(teamName, "citizen") or string.find(teamName, "prisoner") or string.find(teamName, "criminal") then
+        if string.find(teamName, "criminal") or string.find(teamName, "prisoner") then
+            return true -- Tù nhân / Tội phạm thì auto hiện
+        else
+            return checkWanted(plr) -- Thường dân thì phải check truy nã
+        end
+    end
+    
+    return false
+end
+
 --// ESP CORE LOGIC
 local function createESP(plr)
-    -- TỐI ƯU HÓA: Tạo Highlight 1 lần duy nhất cho mỗi player, giấu trong screenGui
     local hl = Instance.new("Highlight", screenGui)
     hl.Name = "WSS_FastHighlight"
     hl.OutlineTransparency = 0.5
@@ -268,15 +283,12 @@ local function createESP(plr)
     hl.Enabled = false
 
     _G.WSS_Drawings[plr] = {
-        Outline = Drawing.new("Square"),
         Health = Drawing.new("Line"),
         Name = Drawing.new("Text"),
-        Tracer = Drawing.new("Line"),
-        WantedText = Drawing.new("Text"), -- CHỮ TRUY NÃ
-        Highlight = hl -- Lưu vào cache
+        WantedText = Drawing.new("Text"),
+        Highlight = hl
     }
     local d = _G.WSS_Drawings[plr]
-    d.Outline.Thickness = 1
     d.Health.Thickness = 2
     
     d.Name.Center = true
@@ -285,16 +297,12 @@ local function createESP(plr)
     d.Name.Size = 11
     d.Name.Font = 1
     
-    d.Tracer.Thickness = 1
-    d.Tracer.Transparency = 0.7
-    
-    -- Config chữ Truy Nã
     d.WantedText.Center = true
     d.WantedText.Outline = true
     d.WantedText.OutlineColor = Color3.new(0, 0, 0)
-    d.WantedText.Size = 8
+    d.WantedText.Size = 10
     d.WantedText.Font = 1
-    d.WantedText.Color = Color3.fromRGB(255, 170, 0) -- Màu cam vàng giống màu ngôi sao
+    d.WantedText.Color = _G.WantedColor
     d.WantedText.Text = "WANTED"
 end
 
@@ -312,46 +320,41 @@ end)
 --// RENDER LOOP
 RunService.RenderStepped:Connect(function()
     local camPos = camera.CFrame.Position
-    local myTeamColor = LocalPlayer.TeamColor -- Cache màu team để không gọi lại nghìn lần
+    local myTeamColor = LocalPlayer.TeamColor
 
     for plr, box in pairs(_G.WSS_Drawings) do
         local char = plr.Character
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
         local hum = char and char:FindFirstChild("Humanoid")
         
-        if espEnabled and char and hrp and hum and hum.Health > 0 then
+        -- LỌC NGAY TẠI ĐÂY: Chỉ chạy ESP nếu pass qua hàm shouldShowESP()
+        if espEnabled and char and hrp and hum and hum.Health > 0 and shouldShowESP(plr) then
             local dist = (hrp.Position - camPos).Magnitude
             if dist < _G.MaxDistance then
                 local pos, vis = camera:WorldToViewportPoint(hrp.Position)
+                local isWanted = checkWanted(plr)
                 
-                -- TỐI ƯU HIGHLIGHT: Chỉ update Adornee, không tạo rác
+                -- Ưu tiên màu: Truy nã (Màu Cam) -> Theo Team -> Màu chung
+                local drawColor = isWanted and _G.WantedColor or ((_G.UseTeamColor and plr.TeamColor.Color) or (plr.TeamColor == myTeamColor and _G.FriendColor or _G.EnemyColor))
+                
                 if showHighlight then
                     box.Highlight.Adornee = char
-                    box.Highlight.FillColor = (_G.UseTeamColor and plr.TeamColor.Color) or (plr.TeamColor == myTeamColor and _G.FriendColor or _G.EnemyColor)
+                    box.Highlight.FillColor = drawColor
                     box.Highlight.Enabled = true
                 else
                     box.Highlight.Enabled = false
                 end
 
                 if vis then
-                    local color = (_G.UseTeamColor and plr.TeamColor.Color) or (plr.TeamColor == myTeamColor and _G.FriendColor or _G.EnemyColor)
                     local scale = 1 / (dist * math.tan(math.rad(camera.FieldOfView / 2)) * 2) * 1000
                     local w, h = 4 * scale, 6 * scale
-
-                    -- Khung Box
-                    box.Outline.Visible = showBox
-                    if showBox then
-                        box.Outline.Size = Vector2.new(w, h)
-                        box.Outline.Position = Vector2.new(pos.X - w/2, pos.Y - h/2)
-                        box.Outline.Color = color
-                    end
 
                     -- Tên người chơi
                     box.Name.Visible = showName
                     if showName then
                         box.Name.Position = Vector2.new(pos.X, pos.Y - h/2 - 20)
                         box.Name.Text = plr.DisplayName .. " ["..math.floor(dist).."m]"
-                        box.Name.Color = color
+                        box.Name.Color = drawColor
                     end
 
                     -- Thanh máu
@@ -363,16 +366,8 @@ RunService.RenderStepped:Connect(function()
                         box.Health.Color = Color3.fromHSV(hpP * 0.3, 1, 1)
                     end
 
-                    -- Đường kẻ Tracer
-                    box.Tracer.Visible = showTracer
-                    if showTracer then
-                        box.Tracer.From = Vector2.new(camera.ViewportSize.X/2, camera.ViewportSize.Y)
-                        box.Tracer.To = Vector2.new(pos.X, pos.Y + h/2)
-                        box.Tracer.Color = color
-                    end
-                    
-                    -- Chữ TRUY NÃ ở dưới
-                    if checkWanted(plr) then
+                    -- Chữ TRUY NÃ ở dưới chân
+                    if isWanted then
                         box.WantedText.Visible = true
                         box.WantedText.Position = Vector2.new(pos.X, pos.Y + h/2 + 5)
                     else
@@ -383,11 +378,10 @@ RunService.RenderStepped:Connect(function()
                 end
             end
         end
-        -- Ẩn hết nếu ở xa hoặc chết/tắt ESP
-        box.Outline.Visible = false
+        
+        -- Ẩn hết nếu không đạt điều kiện (Khác team yêu cầu, ở xa, chết, hoặc tắt ESP)
         box.Health.Visible = false
         box.Name.Visible = false
-        box.Tracer.Visible = false
         box.WantedText.Visible = false
         box.Highlight.Enabled = false
     end
