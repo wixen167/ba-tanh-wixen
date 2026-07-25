@@ -4,7 +4,7 @@ local wallCheck = true           -- Cấu hình mặc định: Bật Check Tư�
 local maxDistance = 450         -- Giới hạn khoảng cách Aim (tính bằng stud)
 
 local teamCheck = false
-local fov = 150 
+local fov = 45 
 local smoothing = 1 
 local predictionFactor = 0 
 local aimbotEnabled = true 
