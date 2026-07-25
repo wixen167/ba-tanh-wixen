@@ -1,4 +1,4 @@
--- // SCRIPT 1: ESP
+-- // SCRIPT 1: vxsans
 task.spawn(function()
     pcall(function()
         loadstring(game:HttpGet("https://raw.githubusercontent.com/wixen167/ba-tanh-wixen/refs/heads/main/%C3%A9t%20bi%20xan%204uri"))()
@@ -8,7 +8,7 @@ end)
 -- Nghỉ ... giây để ESP load
 task.wait(1)
 
--- // SCRIPT 2: AIMBOT
+-- // SCRIPT 2: ESP
 task.spawn(function()
     pcall(function()
         loadstring(game:HttpGet("https://raw.githubusercontent.com/wixen167/ba-tanh-wixen/refs/heads/main/aimxan4uri3"))()
@@ -18,7 +18,7 @@ end)
 -- Nghỉ ... giây (có thể sửa thành task.wait(1) hoặc số khác tùy ý)
 task.wait(1)
 
--- // SCRIPT 3: (Dán link script tiếp theo vào đây)
+-- // SCRIPT 3: AIMBOT
 task.spawn(function()
     pcall(function()
         loadstring(game:HttpGet("https://pastefy.app/ItfO0tdg/raw"))()
